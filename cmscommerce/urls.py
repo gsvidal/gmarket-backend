@@ -3,6 +3,8 @@ from . import views
 
 urlpatterns = [
     path("", views.index, name="index"),
-    path("seller/register", views.seller_dashboard, name="seller_dashboard")
+    path("register", views.register, name="register"),
+    path("seller/register", views.register, name="register")
+    
     # API Routes
 ]
