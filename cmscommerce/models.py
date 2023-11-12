@@ -8,15 +8,11 @@ class User(AbstractUser):
         ("Seller", "Seller"),
         ("Customer", "Customer"),
     ]
-
     role = models.CharField(max_length=10, choices=USER_ROLES, default="Customer")
 
 
 class Seller(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    # Field to specify if the seller offers Products and/or Services
-    offers_products = models.BooleanField(default=False)
-    offers_services = models.BooleanField(default=False)
 
 
 class Customer(models.Model):
@@ -82,24 +78,3 @@ class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField()
-
-
-class Store(models.Model):
-    id = models.AutoField(primary_key=True)
-    owner = models.OneToOneField(Seller, on_delete=models.CASCADE)
-    store_name = models.CharField(max_length=100)
-    description = models.TextField()
-    contact_email = models.EmailField()
-    contact_phone = models.CharField(max_length=20)
-    website = models.URLField()
-
-
-class NavLinkItem(models.Model):
-    text = models.CharField(max_length=50)
-    store = models.ForeignKey(Store, on_delete=models.CASCADE)
-
-
-class SocialMediaItem(models.Model):
-    platform_name = models.CharField(max_length=50)
-    link = models.URLField()
-    store = models.ForeignKey(Store, on_delete=models.CASCADE)
