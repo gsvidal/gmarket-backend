@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
+
 
 
 class User(AbstractUser):
@@ -9,6 +11,7 @@ class User(AbstractUser):
         ("Customer", "Customer"),
     ]
     role = models.CharField(max_length=10, choices=USER_ROLES, default="Customer")
+    created_at = models.DateTimeField(default=timezone.now)
 
 
 class Seller(models.Model):
