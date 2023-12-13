@@ -28,22 +28,23 @@ class Customer(models.Model):
 
 class Category(models.Model):
     id = models.AutoField(primary_key=True)
-    category_name = models.CharField(max_length=50)
-    description = models.TextField()
+    name = models.CharField(max_length=50, unique=True)
+    code = models.CharField(max_length=10, unique=True)
 
 
-class ProductImage(models.Model):
-    id = models.AutoField(primary_key=True)
-    image = models.ImageField(upload_to="product_images/")
+# class ProductImage(models.Model):
+#     id = models.AutoField(primary_key=True)
+#     image = models.ImageField(upload_to="product_images/")
+#     product = models.ForeignKey(Product, on_delete=models.CASCADE)
 
 
 class Product(models.Model):
     id = models.AutoField(primary_key=True)
-    product_name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100)
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    stock_quantity = models.PositiveIntegerField()
-    images = models.ManyToManyField(ProductImage)
+    stock = models.PositiveIntegerField()
+    image = models.ImageField(upload_to="product_images/")
     category = models.ForeignKey(
         Category, on_delete=models.CASCADE, related_name="products"
     )
