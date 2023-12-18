@@ -41,7 +41,9 @@ class Category(models.Model):
 class Product(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
+    brand = models.CharField(max_length=50)
     description = models.TextField()
+    base_price = models.DecimalField(max_digits=10, decimal_places=2)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField()
     image = models.ImageField(upload_to="product_images/")

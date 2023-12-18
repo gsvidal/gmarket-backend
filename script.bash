@@ -3,6 +3,7 @@
 cd backend/gmarket/.venv/
 source ./Scripts/activate && cd ..
 python manage.py runserver
+cd sffdf
 
 
 # Create product categories

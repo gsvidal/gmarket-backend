@@ -171,7 +171,9 @@ def seller_dashboard(request, seller_id):
                 {
                     "id": p.pk,
                     "name": p.name,
+                    "brand": p.brand,
                     "description": p.description,
+                    "base_price": str(p.base_price),
                     "price": str(p.price),
                     "stock": p.stock,
                     "image": p.image.url if p.image else None,
@@ -223,17 +225,47 @@ def categories(request):
 def create_product(request):
     if request.method == "POST":
         name = request.POST.get("name")
+        brand = request.POST.get("brand")
         description = request.POST.get("description")
+        base_price = request.POST.get("base_price")
         price = request.POST.get("price")
         stock = request.POST.get("stock")
         category_code = request.POST.get("category_code")
         seller_id = int(request.POST.get("seller_id"))
         image = request.FILES.get("image")  # Use request.FILES for file fields
 
+        # Validate inputs
+        fields_to_validate = [
+            {"field": name, "message": "Name is required"},
+            {"field": brand, "message": "Brand is required"},
+            {"field": description, "message": "Description is required"},
+            {"field": base_price, "message": "Base price is required"},
+            {"field": price, "message": "Price is required"},
+            {"field": stock, "message": "Stock is required"},
+        ]
+
+        for field in fields_to_validate:
+            if not field["field"]:
+                return JsonResponse({"error": field["message"]}, status=400)
+
+        if float(price) < 0:
+            return JsonResponse(
+                {"error": "Price must be a positive number"}, status=400
+            )
+
+        if int(stock) < 0:
+            return JsonResponse(
+                {"error": "Stock must be a positive integer"}, status=400
+            )
+
         if image:
             if not image.name.endswith((".jpg", ".png")):
                 return JsonResponse(
                     {"error": "Image must be a .jpg or .png file."}, status=400
+                )
+            if image.size > 2 * 1024 * 1024:
+                return JsonResponse(
+                    {"error": "Image must be less than or equal to 2MB."}, status=400
                 )
 
         try:
@@ -244,7 +276,7 @@ def create_product(request):
             return JsonResponse(
                 {"error": "Seller with provided ID does not exist."}, status=400
             )
-        
+
         # pylint: disable=no-member
         seller = Seller.objects.get(user=seller_user)
         # If no category_code is provided, use the "no-category" category
@@ -259,7 +291,9 @@ def create_product(request):
         try:
             product = Product.objects.create(
                 name=name,
+                brand=brand,
                 description=description,
+                base_price=base_price,
                 price=price,
                 stock=stock,  # Include the stock value
                 category=category,
@@ -276,7 +310,9 @@ def create_product(request):
                 "product": {
                     "id": product.id,
                     "name": product.name,
+                    "brand": product.brand,
                     "description": product.description,
+                    "base_price": product.base_price,
                     "price": product.price,
                     "stock": product.stock,  # Return the stock value
                     "category": {
@@ -307,7 +343,9 @@ def all_products(request):
                 {
                     "id": p.pk,
                     "name": p.name,
+                    "brand": p.brand,
                     "description": p.description,
+                    "base_price": str(p.base_price),
                     "price": str(p.price),
                     "stock": p.stock,
                     "image": p.image.url if p.image else None,
@@ -330,5 +368,7 @@ def all_products(request):
                 },
                 status=200,
             )
-        except Product.DoesNotExist:
-            return JsonResponse({"error": "No products found."}, status=400)
+        except Exception as e:
+            return JsonResponse(
+                {"error": "Couldn't retrieve products. Error: " + str(e)}, status=500
+            )
