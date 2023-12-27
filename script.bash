@@ -3,11 +3,11 @@
 cd backend/gmarket/.venv/
 source ./Scripts/activate && cd ..
 python manage.py runserver
-cd sffdf
 
 
 # Create product categories
 from cmscommerce.models import Category
+
 
 # Create a new category
 category1 = Category(name='Technology', code='tech')
