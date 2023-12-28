@@ -3,7 +3,6 @@ from django.db import models
 from django.utils import timezone
 
 
-
 class User(AbstractUser):
     id = models.AutoField(primary_key=True)
     USER_ROLES = [
@@ -31,13 +30,6 @@ class Category(models.Model):
     name = models.CharField(max_length=50, unique=True)
     code = models.CharField(max_length=10, unique=True)
 
-
-# class ProductImage(models.Model):
-#     id = models.AutoField(primary_key=True)
-#     image = models.ImageField(upload_to="product_images/")
-#     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-
-
 class Product(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
@@ -55,32 +47,32 @@ class Product(models.Model):
     )
 
 
-class Order(models.Model):
-    id = models.AutoField(primary_key=True)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    products = models.ManyToManyField(Product, through="OrderItem")
-    order_date = models.DateTimeField(auto_now_add=True)
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    shipping_information = models.TextField()
-    status = models.CharField(max_length=20)
+# class Order(models.Model):
+#     id = models.AutoField(primary_key=True)
+#     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+#     products = models.ManyToManyField(Product, through="OrderItem")
+#     order_date = models.DateTimeField(auto_now_add=True)
+#     total_price = models.DecimalField(max_digits=10, decimal_places=2)
+#     shipping_information = models.TextField()
+#     status = models.CharField(max_length=20)
 
 
-class OrderItem(models.Model):
-    id = models.AutoField(primary_key=True)
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
+# class OrderItem(models.Model):
+#     id = models.AutoField(primary_key=True)
+#     order = models.ForeignKey(Order, on_delete=models.CASCADE)
+#     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+#     quantity = models.PositiveIntegerField()
 
 
-class Cart(models.Model):
-    id = models.AutoField(primary_key=True)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    products = models.ManyToManyField(Product, through="CartItem")
-    quantity = models.PositiveIntegerField()
+# class Cart(models.Model):
+#     id = models.AutoField(primary_key=True)
+#     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+#     products = models.ManyToManyField(Product, through="CartItem")
+#     quantity = models.PositiveIntegerField()
 
 
-class CartItem(models.Model):
-    id = models.AutoField(primary_key=True)
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
+# class CartItem(models.Model):
+#     id = models.AutoField(primary_key=True)
+#     cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
+#     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+#     quantity = models.PositiveIntegerField()
