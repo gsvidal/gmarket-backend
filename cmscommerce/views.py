@@ -60,7 +60,7 @@ def register(request) -> JsonResponse:
 
         # User role
         role = data.get("role")
-        print(f"role is: {role}")
+        # print(f"role is: {role}")
 
         if role is None:
             return JsonResponse({"error": "Role is required."}, status=400)
@@ -118,7 +118,7 @@ def login_view(request) -> JsonResponse:
             # Tries to get an existing token for the user. If a token doesn't exist, it creates a new one.
             # pylint: disable=no-member
             token, created = Token.objects.get_or_create(user=user)
-            print(f"user's token from login_view: {token}")
+            # print(f"user's token from login_view: {token}")
             login(request, user)
             return JsonResponse(
                 {
@@ -141,7 +141,7 @@ def login_view(request) -> JsonResponse:
 
 @role_required("any")
 def logout_view(request):
-    print("request.user: ", request.user)
+    # print("request.user: ", request.user)
     try:
         # Check if the user exists in the backend
         User.objects.get(pk=request.user.id)
@@ -162,13 +162,13 @@ def seller_dashboard(request, seller_id):
     if request.method == "GET":
         page_number = request.GET.get("page", 1)
         products_per_page = request.GET.get("per_page", 10)
-        print(f"page_number: {page_number};;; products_per_page: {products_per_page}")
+        # print(f"page_number: {page_number};;; products_per_page: {products_per_page}")
         try:
-            print(f"seller_id: {seller_id}")
+            # print(f"seller_id: {seller_id}")
             # pylint: disable=no-member
             seller_user = User.objects.get(pk=seller_id)
             seller = Seller.objects.get(user=seller_user)
-            products = Product.objects.filter(seller=seller)
+            products = Product.objects.filter(seller=seller).order_by("pk")
 
             paginator = Paginator(products, products_per_page)
 
@@ -180,7 +180,7 @@ def seller_dashboard(request, seller_id):
                 )  # Handle out-of-range pages by returning the first page
 
             total_pages = paginator.num_pages
-            print(f"total_pages: {total_pages}")
+            # print(f"total_pages: {total_pages}")
 
             # Serialize the products
             products_json = [
@@ -205,7 +205,8 @@ def seller_dashboard(request, seller_id):
                 }
                 for p in products
             ]
-            print(f"seller products json are: {products_json}")
+            # print(f"seller products json are: {products_json}")
+            logout(request)
             return JsonResponse(
                 {
                     "message": "Seller dashboard data retrieved successfully",
@@ -365,11 +366,11 @@ def all_products(request):
     if request.method == "GET":
         page_number = request.GET.get("page", 1)
         products_per_page = request.GET.get("per_page", 10)
-        print(f"page_number: {page_number};;; products_per_page: {products_per_page}")
+        # print(f"page_number: {page_number};;; products_per_page: {products_per_page}")
 
         try:
             # pylint: disable=no-member
-            products = Product.objects.all()
+            products = Product.objects.all().order_by("pk")
 
             paginator = Paginator(products, products_per_page)
 
