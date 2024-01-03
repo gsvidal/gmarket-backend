@@ -28,7 +28,7 @@ class Customer(models.Model):
 class Category(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=50, unique=True)
-    code = models.CharField(max_length=10, unique=True)
+    code = models.CharField(max_length=15, unique=True)
 
 class Product(models.Model):
     id = models.AutoField(primary_key=True)

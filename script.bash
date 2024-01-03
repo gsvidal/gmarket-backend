@@ -1,4 +1,4 @@
-# Script to run back dev server
+# Script to run back development server
 
 cd backend/gmarket/.venv/
 source ./Scripts/activate && cd ..
@@ -27,3 +27,15 @@ category5.save()
 category6.save()
 category7.save()
 category8.save()
+
+# Postgres
+
+INSERT INTO cmscommerce_category (name, code) VALUES
+('Technology', 'tech'),
+('Fashion', 'fashion'),
+('Grocery', 'grocery'),
+('Books', 'books'),
+('Music', 'music'),
+('Sports', 'sports'),
+('Games', 'games'),
+('No Category', 'no-category');
