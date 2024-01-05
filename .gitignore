@@ -38,3 +38,5 @@ shell.py
 
 # Uncomment before last commit to production
 migrations/
+
+product_images/

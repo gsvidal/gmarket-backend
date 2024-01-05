@@ -122,7 +122,7 @@ def login_view(request) -> JsonResponse:
             login(request, user)
             return JsonResponse(
                 {
-                    "message": "User created successfully",
+                    "message": "User logged in successfully",
                     "user": {
                         "id": user.id,
                         "username": user.username,
