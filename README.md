@@ -1,8 +1,31 @@
-# Distinctiveness and Complexity
+# G-market
+[Check the frontend repo here](https://github.com/gsvidal/gmarket)
 
-The detailed description bellow demonstrates the complexity of my e-commerce application, showcasing over three years of accumulated web development expertise. In my pursuit of excellence, I opted for a challenging project, steering away from the simplicity of a basic Django React JS application. This deliberate choice reflects my commitment to meeting course requirements and building a project that meets industry standards.
+<a href="https://gmarket.onrender.com/">
+  <img src="https://i.postimg.cc/9MLNzTxk/gmarket.gif" width="700">
+</a> 
 
-## Gmarket is an e-commerce fullstack app with some CMS(Content Management System) functionalities, it's been built with:
+# Live demo
+[Gmarket deployed App](https://gmarket.onrender.com)
+
+# Gmarket is an e-commerce fullstack app, it's been built with:
+
+## Tech Stack:
+
+<img src="https://raw.githubusercontent.com/devicons/devicon/55609aa5bd817ff167afce0d965585c92040787a/icons/html5/html5-original-wordmark.svg" alt="html5 Logo" width="50" height="50"/><img src="https://raw.githubusercontent.com/devicons/devicon/55609aa5bd817ff167afce0d965585c92040787a/icons/css3/css3-original-wordmark.svg" alt="css3 Logo" width="50" height="50"/>
+<img src="https://raw.githubusercontent.com/devicons/devicon/55609aa5bd817ff167afce0d965585c92040787a/icons/typescript/typescript-original.svg" alt="Typescript Logo" width="50" height="50"/>
+<img src="https://raw.githubusercontent.com/devicons/devicon/55609aa5bd817ff167afce0d965585c92040787a/icons/react/react-original-wordmark.svg" alt="react Logo" width="50" height="50"/>
+<img src="https://github.com/devicons/devicon/blob/master/icons/redux/redux-original.svg" alt="redux Logo" width="50" height="50"/>
+<img src="https://vitejs.dev/logo.svg" alt="Vite Logo" width="50" height="50"/>
+<img src="https://vitest.dev/logo-shadow.svg" alt="Vitest Logo" width="50" height="50"/>
+<img src="https://testing-library.com/img/octopus-64x64.png" alt="React Testing Library Logo" width="50" height="50"/>
+<img src="https://raw.githubusercontent.com/devicons/devicon/55609aa5bd817ff167afce0d965585c92040787a/icons/sass/sass-original.svg" alt="Sass Logo" width="50" height="50"/>
+<img src="https://reactrouter.com/_brand/react-router-stacked-color.png" alt="react router Logo" width="90" height="50"/>
+<img src="https://raw.githubusercontent.com/devicons/devicon/55609aa5bd817ff167afce0d965585c92040787a/icons/python/python-original-wordmark.svg" alt="Python Logo" width="50" height="50"/>
+<img src="https://raw.githubusercontent.com/devicons/devicon/55609aa5bd817ff167afce0d965585c92040787a/icons/django/django-plain-wordmark.svg" alt="Django Logo" width="50" height="50"/>
+<img src="https://raw.githubusercontent.com/devicons/devicon/55609aa5bd817ff167afce0d965585c92040787a/icons/postgresql/postgresql-original-wordmark.svg" alt="Python Logo" width="50" height="50"/>
+<img src="https://devopedia.org/images/article/152/3612.1549627952.png" alt="BEM Logo" width="50" height="50" />
+<img src="https://github.com/devicons/devicon/blob/master/icons/npm/npm-original-wordmark.svg" alt="npm Logo" width="50" height="50"/>
 
 Backend:
 
