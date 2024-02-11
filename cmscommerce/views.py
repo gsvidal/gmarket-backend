@@ -12,7 +12,7 @@ from django.core import serializers
 from django.core.paginator import Paginator, EmptyPage
 
 
-from .models import User, Product, Seller, Category
+from .models import User, Product, Seller, Category, Cart, CartItem
 
 
 # Create your views here.
@@ -75,6 +75,10 @@ def register(request) -> JsonResponse:
             if role == "Seller":
                 # pylint: disable=no-member
                 Seller.objects.create(user=user)
+            elif role == "Customer":
+                # If the user is a customer, create a Cart instance associated with the user
+                # pylint: disable=no-member
+                Cart.objects.create(customer=user.customer)
 
             # After the user is created, create a token for the user
             # pylint: disable=no-member
@@ -561,3 +565,124 @@ def update_product(request, product_id):
         )
     else:
         return JsonResponse({"error": "Invalid request method."}, status=405)
+
+
+@role_required("Customer")
+def add_to_cart(request, product_id):
+    """
+    View for adding a product to the shopping cart for a customer.
+    """
+    if request.method == "POST":
+        customer = request.user.customer
+
+        try:
+            product = Product.objects.get(pk=product_id)
+        except Product.DoesNotExist:
+            return JsonResponse(
+                {"error": "Product with provided ID does not exist."},
+                status=400
+            )
+
+        quantity = int(request.POST.get("quantity", 1))
+
+        # Check if the product is already in the customer's cart
+        cart = Cart.objects.get(customer=customer)
+        if CartItem.objects.filter(cart=cart, product=product).exists():
+            return JsonResponse(
+                {"error": "Product is already in the cart."},
+                status=400
+            )
+
+        # Add the product to the cart
+        CartItem.objects.create(cart=cart, product=product, quantity=quantity)
+
+        return JsonResponse(
+            {"message": "Product added to cart successfully."},
+            status=200
+        )
+    else:
+        return JsonResponse(
+            {"error": "Invalid request method."},
+            status=405
+        )
+
+@role_required("Customer")
+def remove_from_cart(request, product_id):
+    """
+    View for removing a product from the shopping cart for a customer.
+    """
+    if request.method == "POST":
+        customer = request.user.customer
+
+        try:
+            product = Product.objects.get(pk=product_id)
+        except Product.DoesNotExist:
+            return JsonResponse(
+                {"error": "Product with provided ID does not exist."},
+                status=400
+            )
+
+        # Check if the product is in the customer's cart
+        cart = Cart.objects.get(customer=customer)
+        try:
+            cart_item = CartItem.objects.get(cart=cart, product=product)
+        except CartItem.DoesNotExist:
+            return JsonResponse(
+                {"error": "Product is not in the cart."},
+                status=400
+            )
+
+        # Remove the product from the cart
+        cart_item.delete()
+
+        return JsonResponse(
+            {"message": "Product removed from cart successfully."},
+            status=200
+        )
+    else:
+        return JsonResponse(
+            {"error": "Invalid request method."},
+            status=405
+        )
+
+@role_required("Customer")
+def update_cart(request, product_id):
+    """
+    View for updating the quantity of a product in the shopping cart for a customer.
+    """
+    if request.method == "POST":
+        customer = request.user.customer
+
+        try:
+            product = Product.objects.get(pk=product_id)
+        except Product.DoesNotExist:
+            return JsonResponse(
+                {"error": "Product with provided ID does not exist."},
+                status=400
+            )
+
+        new_quantity = int(request.POST.get("quantity", 1))
+
+        # Check if the product is in the customer's cart
+        cart = Cart.objects.get(customer=customer)
+        try:
+            cart_item = CartItem.objects.get(cart=cart, product=product)
+        except CartItem.DoesNotExist:
+            return JsonResponse(
+                {"error": "Product is not in the cart."},
+                status=400
+            )
+
+        # Update the quantity of the product in the cart
+        cart_item.quantity = new_quantity
+        cart_item.save()
+
+        return JsonResponse(
+            {"message": "Cart updated successfully."},
+            status=200
+        )
+    else:
+        return JsonResponse(
+            {"error": "Invalid request method."},
+            status=405
+        )
