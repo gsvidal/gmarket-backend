@@ -68,7 +68,7 @@ class Cart(models.Model):
     id = models.AutoField(primary_key=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     products = models.ManyToManyField(Product, through="CartItem")
-    quantity = models.PositiveIntegerField()
+    total_quantity = models.PositiveIntegerField()
 
 
 class CartItem(models.Model):

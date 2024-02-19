@@ -12,7 +12,7 @@ from django.core import serializers
 from django.core.paginator import Paginator, EmptyPage
 
 
-from .models import User, Product, Seller, Category, Cart, CartItem
+from .models import User, Product, Seller, Category, Cart, CartItem, Customer
 
 
 # Create your views here.
@@ -60,7 +60,6 @@ def register(request) -> JsonResponse:
 
         # User role
         role = data.get("role")
-        # print(f"role is: {role}")
 
         if role is None:
             return JsonResponse({"error": "Role is required."}, status=400)
@@ -78,14 +77,19 @@ def register(request) -> JsonResponse:
             elif role == "Customer":
                 # If the user is a customer, create a Cart instance associated with the user
                 # pylint: disable=no-member
-                Cart.objects.create(customer=user.customer)
+                customer = Customer.objects.create(user=user)
+                cart = Cart.objects.create(customer=customer, total_quantity=0)
 
             # After the user is created, create a token for the user
             # pylint: disable=no-member
             token = Token.objects.create(user=user)
 
-        except IntegrityError:
-            return JsonResponse({"error": "Username already taken."}, status=400)
+        except IntegrityError as e:
+            if 'unique constraint' in str(e).lower():
+                return JsonResponse({"error": "Username already taken."}, status=400)
+            else:
+                # Handle other integrity errors
+                return JsonResponse({"error": "An error occurred while creating the user."}, status=400)
 
         login(request, user)
         return JsonResponse(
