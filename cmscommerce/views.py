@@ -85,11 +85,13 @@ def register(request) -> JsonResponse:
             token = Token.objects.create(user=user)
 
         except IntegrityError as e:
-            if 'unique constraint' in str(e).lower():
+            if "unique constraint" in str(e).lower():
                 return JsonResponse({"error": "Username already taken."}, status=400)
             else:
                 # Handle other integrity errors
-                return JsonResponse({"error": "An error occurred while creating the user."}, status=400)
+                return JsonResponse(
+                    {"error": "An error occurred while creating the user."}, status=400
+                )
 
         login(request, user)
         return JsonResponse(
@@ -261,7 +263,7 @@ def create_product(request):
         description = request.POST.get("description")
         base_price = request.POST.get("base_price")
         price = request.POST.get("price")
-        stock = request.POST.get("stock")
+        stock = int(request.POST.get("stock"))
         category_code = request.POST.get("category_code")
         seller_id = int(request.POST.get("seller_id"))
         image = request.FILES.get("image")  # Use request.FILES for file fields
@@ -281,7 +283,18 @@ def create_product(request):
                 return JsonResponse({"error": field["message"]}, status=400)
 
         try:
-            float_price = float(price)
+            float_base_price = round(float(base_price), 2)
+            if float_base_price < 0:
+                return JsonResponse(
+                    {"error": "Base price must be a positive number"}, status=400
+                )
+        except ValueError:
+            return JsonResponse(
+                {"error": "Base price must be a valid number"}, status=400
+            )
+
+        try:
+            float_price = round(float(price), 2)
             if float_price < 0:
                 return JsonResponse(
                     {"error": "Price must be a positive number"}, status=400
@@ -329,8 +342,8 @@ def create_product(request):
                 name=name,
                 brand=brand,
                 description=description,
-                base_price=base_price,
-                price=price,
+                base_price=float_base_price,
+                price=float_price,
                 stock=stock,  # Include the stock value
                 category=category,
                 seller=seller,
@@ -577,38 +590,27 @@ def add_to_cart(request, product_id):
     View for adding a product to the shopping cart for a customer.
     """
     if request.method == "POST":
-        customer = request.user.customer
+        customer = Customer.objects.get(user=request.user)
+
 
         try:
             product = Product.objects.get(pk=product_id)
         except Product.DoesNotExist:
             return JsonResponse(
-                {"error": "Product with provided ID does not exist."},
-                status=400
+                {"error": "Product with provided ID does not exist."}, status=400
             )
 
         quantity = int(request.POST.get("quantity", 1))
 
-        # Check if the product is already in the customer's cart
         cart = Cart.objects.get(customer=customer)
-        if CartItem.objects.filter(cart=cart, product=product).exists():
-            return JsonResponse(
-                {"error": "Product is already in the cart."},
-                status=400
-            )
-
-        # Add the product to the cart
         CartItem.objects.create(cart=cart, product=product, quantity=quantity)
 
         return JsonResponse(
-            {"message": "Product added to cart successfully."},
-            status=200
+            {"message": "Product added to cart successfully."}, status=200
         )
     else:
-        return JsonResponse(
-            {"error": "Invalid request method."},
-            status=405
-        )
+        return JsonResponse({"error": "Invalid request method."}, status=405)
+
 
 @role_required("Customer")
 def remove_from_cart(request, product_id):
@@ -622,8 +624,7 @@ def remove_from_cart(request, product_id):
             product = Product.objects.get(pk=product_id)
         except Product.DoesNotExist:
             return JsonResponse(
-                {"error": "Product with provided ID does not exist."},
-                status=400
+                {"error": "Product with provided ID does not exist."}, status=400
             )
 
         # Check if the product is in the customer's cart
@@ -631,38 +632,32 @@ def remove_from_cart(request, product_id):
         try:
             cart_item = CartItem.objects.get(cart=cart, product=product)
         except CartItem.DoesNotExist:
-            return JsonResponse(
-                {"error": "Product is not in the cart."},
-                status=400
-            )
+            return JsonResponse({"error": "Product is not in the cart."}, status=400)
 
         # Remove the product from the cart
         cart_item.delete()
 
         return JsonResponse(
-            {"message": "Product removed from cart successfully."},
-            status=200
+            {"message": "Product removed from cart successfully."}, status=200
         )
     else:
-        return JsonResponse(
-            {"error": "Invalid request method."},
-            status=405
-        )
+        return JsonResponse({"error": "Invalid request method."}, status=405)
+
 
 @role_required("Customer")
 def update_cart(request, product_id):
     """
     View for updating the quantity of a product in the shopping cart for a customer.
     """
-    if request.method == "POST":
+    if request.method == "PUT":
         customer = request.user.customer
+
 
         try:
             product = Product.objects.get(pk=product_id)
         except Product.DoesNotExist:
             return JsonResponse(
-                {"error": "Product with provided ID does not exist."},
-                status=400
+                {"error": "Product with provided ID does not exist."}, status=400
             )
 
         new_quantity = int(request.POST.get("quantity", 1))
@@ -672,21 +667,12 @@ def update_cart(request, product_id):
         try:
             cart_item = CartItem.objects.get(cart=cart, product=product)
         except CartItem.DoesNotExist:
-            return JsonResponse(
-                {"error": "Product is not in the cart."},
-                status=400
-            )
+            return JsonResponse({"error": "Product is not in the cart."}, status=400)
 
         # Update the quantity of the product in the cart
         cart_item.quantity = new_quantity
         cart_item.save()
 
-        return JsonResponse(
-            {"message": "Cart updated successfully."},
-            status=200
-        )
+        return JsonResponse({"message": "Cart updated successfully."}, status=200)
     else:
-        return JsonResponse(
-            {"error": "Invalid request method."},
-            status=405
-        )
+        return JsonResponse({"error": "Invalid request method."}, status=405)
