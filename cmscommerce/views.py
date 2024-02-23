@@ -403,6 +403,10 @@ def all_products(request):
                 )  # Handle out-of-range pages by returning the first page
 
             total_pages = paginator.num_pages
+
+            # Extract IDs of all products
+            all_product_ids = [p.pk for p in products]
+
             products_json = [
                 {
                     "id": p.pk,
@@ -429,6 +433,7 @@ def all_products(request):
                 {
                     "message": "Products retrieved successfully",
                     "products": products_json,
+                    "all_product_ids": all_product_ids,
                     "pagination_info": {
                         "total_pages": total_pages,
                         "current_page": page_number,
@@ -592,7 +597,6 @@ def add_to_cart(request, product_id):
     if request.method == "POST":
         customer = Customer.objects.get(user=request.user)
 
-
         try:
             product = Product.objects.get(pk=product_id)
         except Product.DoesNotExist:
@@ -617,7 +621,7 @@ def remove_from_cart(request, product_id):
     """
     View for removing a product from the shopping cart for a customer.
     """
-    if request.method == "POST":
+    if request.method == "DELETE":
         customer = request.user.customer
 
         try:
@@ -645,13 +649,13 @@ def remove_from_cart(request, product_id):
 
 
 @role_required("Customer")
-def update_cart(request, product_id):
+def update_quantity(request, product_id):
     """
     View for updating the quantity of a product in the shopping cart for a customer.
     """
     if request.method == "PUT":
         customer = request.user.customer
-
+        print("put")
 
         try:
             product = Product.objects.get(pk=product_id)
@@ -660,7 +664,10 @@ def update_cart(request, product_id):
                 {"error": "Product with provided ID does not exist."}, status=400
             )
 
-        new_quantity = int(request.POST.get("quantity", 1))
+        data = json.loads(request.body)
+
+        new_quantity = int(data.get("quantity")) or 1
+        print(f"new quantity from frontend: {new_quantity}")
 
         # Check if the product is in the customer's cart
         cart = Cart.objects.get(customer=customer)
@@ -670,7 +677,7 @@ def update_cart(request, product_id):
             return JsonResponse({"error": "Product is not in the cart."}, status=400)
 
         # Update the quantity of the product in the cart
-        cart_item.quantity = new_quantity
+        cart_item.quantity = cart_item.quantity + new_quantity
         cart_item.save()
 
         return JsonResponse({"message": "Cart updated successfully."}, status=200)
