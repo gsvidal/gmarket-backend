@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.db import IntegrityError
+from django.db.models import F, Sum
 from django.urls import reverse
 import json
 from helpers import role_required
@@ -623,7 +624,6 @@ def remove_from_cart(request, product_id):
     """
     if request.method == "DELETE":
         customer = request.user.customer
-
         try:
             product = Product.objects.get(pk=product_id)
         except Product.DoesNotExist:
@@ -671,8 +671,11 @@ def update_quantity(request, product_id):
 
         # Check if the product is in the customer's cart
         cart = Cart.objects.get(customer=customer)
+        print(f"cart: {cart}")
         try:
             cart_item = CartItem.objects.get(cart=cart, product=product)
+            print(f"cart_item: {cart_item}")
+
         except CartItem.DoesNotExist:
             return JsonResponse({"error": "Product is not in the cart."}, status=400)
 
@@ -681,5 +684,51 @@ def update_quantity(request, product_id):
         cart_item.save()
 
         return JsonResponse({"message": "Cart updated successfully."}, status=200)
+    else:
+        return JsonResponse({"error": "Invalid request method."}, status=405)
+
+
+@role_required("Customer")
+def get_cart(request):
+    if request.method == "GET":
+        customer = request.user.customer
+
+        try:
+            cart = Cart.objects.get(customer=customer)
+        except Cart.DoesNotExist:
+            return JsonResponse(
+                {"error": "Cart does not exist for this customer."}, status=404
+            )
+
+        # Retrieve all cart items associated with the cart
+        cart_items = CartItem.objects.filter(cart=cart)
+
+        # Calculate total quantity and total price
+        cart_total_quantity = cart_items.aggregate(total_quantity=Sum('quantity'))['total_quantity'] or 0
+        cart_total_price = sum(cart_item.product.price * cart_item.quantity for cart_item in cart_items)
+
+        # Serialize cart items data
+        cart_items_data = []
+        for cart_item in cart_items:
+            cart_items_data.append({
+                "id": cart_item.product.id,
+                "name": cart_item.product.name,
+                "brand": cart_item.product.brand,
+                "description": cart_item.product.description,
+                "base_price": int(cart_item.product.base_price),
+                "price": int(cart_item.product.price),
+                "stock": cart_item.product.stock,
+                "image_url": cart_item.product.image.url,
+                "category": cart_item.product.category.name,
+                "seller": cart_item.product.seller.user.username,
+                "quantity": cart_item.quantity
+            })
+
+        return JsonResponse({
+            "cartItems": cart_items_data,
+            "cartTotalQuantity": cart_total_quantity,
+            "cartTotalPrice": int(cart_total_price)
+        }, status=200)
+
     else:
         return JsonResponse({"error": "Invalid request method."}, status=405)
