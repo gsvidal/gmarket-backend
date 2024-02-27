@@ -608,7 +608,15 @@ def add_to_cart(request, product_id):
         quantity = int(request.POST.get("quantity", 1))
 
         cart = Cart.objects.get(customer=customer)
-        CartItem.objects.create(cart=cart, product=product, quantity=quantity)
+
+        # Verify if cartItem already exists
+        try:
+            cart_item = CartItem.objects.get(cart=cart, product=product)
+            cart_item.quantity += quantity
+            cart_item.save()
+        except CartItem.DoesNotExist:
+            CartItem.objects.create(cart=cart, product=product, quantity=quantity)
+
 
         return JsonResponse(
             {"message": "Product added to cart successfully."}, status=200
@@ -687,7 +695,6 @@ def update_quantity(request, product_id):
     else:
         return JsonResponse({"error": "Invalid request method."}, status=405)
 
-
 @role_required("Customer")
 def get_cart(request):
     if request.method == "GET":
@@ -703,32 +710,54 @@ def get_cart(request):
         # Retrieve all cart items associated with the cart
         cart_items = CartItem.objects.filter(cart=cart)
 
-        # Calculate total quantity and total price
-        cart_total_quantity = cart_items.aggregate(total_quantity=Sum('quantity'))['total_quantity'] or 0
-        cart_total_price = sum(cart_item.product.price * cart_item.quantity for cart_item in cart_items)
+        # Initialize a dictionary to aggregate quantities of the same product
+        product_quantities = {}
+
+        # Aggregate quantities for identical products
+        for cart_item in cart_items:
+            product_id = cart_item.product.id
+            if product_id in product_quantities:
+                product_quantities[product_id] += cart_item.quantity
+            else:
+                product_quantities[product_id] = cart_item.quantity
 
         # Serialize cart items data
         cart_items_data = []
-        for cart_item in cart_items:
-            cart_items_data.append({
-                "id": cart_item.product.id,
-                "name": cart_item.product.name,
-                "brand": cart_item.product.brand,
-                "description": cart_item.product.description,
-                "base_price": int(cart_item.product.base_price),
-                "price": int(cart_item.product.price),
-                "stock": cart_item.product.stock,
-                "image_url": cart_item.product.image.url,
-                "category": cart_item.product.category.name,
-                "seller": cart_item.product.seller.user.username,
-                "quantity": cart_item.quantity
-            })
+        for product_id, quantity in product_quantities.items():
+            cart_item = cart_items.filter(product_id=product_id).first()
+            if cart_item:
+                product_data = {
+                    "id": cart_item.product.id,
+                    "name": cart_item.product.name,
+                    "brand": cart_item.product.brand,
+                    "description": cart_item.product.description,
+                    "base_price": int(cart_item.product.base_price),
+                    "price": int(cart_item.product.price),
+                    "stock": cart_item.product.stock,
+                    "category": cart_item.product.category.name,
+                    "seller": cart_item.product.seller.user.username,
+                    "quantity": quantity
+                }
+                if cart_item.product.image:  # Check if the product has an associated image
+                    product_data["image_url"] = cart_item.product.image.url
+                else:
+                    product_data["image_url"] = None  # Or any default image URL or placeholder
+                cart_items_data.append(product_data)
 
-        return JsonResponse({
-            "cartItems": cart_items_data,
-            "cartTotalQuantity": cart_total_quantity,
-            "cartTotalPrice": int(cart_total_price)
-        }, status=200)
+        # Calculate total quantity and total price
+        cart_total_quantity = sum(product_quantities.values())
+        cart_total_price = sum(
+            cart_item.product.price * quantity for product_id, quantity in product_quantities.items()
+        )
+
+        return JsonResponse(
+            {
+                "cartItems": cart_items_data,
+                "cartTotalQuantity": cart_total_quantity,
+                "cartTotalPrice": int(cart_total_price),
+            },
+            status=200,
+        )
 
     else:
         return JsonResponse({"error": "Invalid request method."}, status=405)
