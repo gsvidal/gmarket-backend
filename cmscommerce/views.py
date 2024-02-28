@@ -264,7 +264,7 @@ def create_product(request):
         description = request.POST.get("description")
         base_price = request.POST.get("base_price")
         price = request.POST.get("price")
-        stock = int(request.POST.get("stock"))
+        stock = request.POST.get("stock")
         category_code = request.POST.get("category_code")
         seller_id = int(request.POST.get("seller_id"))
         image = request.FILES.get("image")  # Use request.FILES for file fields
@@ -345,7 +345,7 @@ def create_product(request):
                 description=description,
                 base_price=float_base_price,
                 price=float_price,
-                stock=stock,  # Include the stock value
+                stock=stock,
                 category=category,
                 seller=seller,
                 image=image,
@@ -731,8 +731,8 @@ def get_cart(request):
                     "name": cart_item.product.name,
                     "brand": cart_item.product.brand,
                     "description": cart_item.product.description,
-                    "base_price": int(cart_item.product.base_price),
-                    "price": int(cart_item.product.price),
+                    "base_price": round(float(cart_item.product.base_price), 2),
+                    "price": round(float(cart_item.product.price), 2), 
                     "stock": cart_item.product.stock,
                     "category": cart_item.product.category.name,
                     "seller": cart_item.product.seller.user.username,
@@ -754,7 +754,7 @@ def get_cart(request):
             {
                 "cartItems": cart_items_data,
                 "cartTotalQuantity": cart_total_quantity,
-                "cartTotalPrice": int(cart_total_price),
+                "cartTotalPrice": round(float(cart_total_price), 2),
             },
             status=200,
         )
