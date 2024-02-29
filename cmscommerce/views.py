@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.db import IntegrityError
+from django.db.models import F, Sum
 from django.urls import reverse
 import json
 from helpers import role_required
@@ -12,7 +13,7 @@ from django.core import serializers
 from django.core.paginator import Paginator, EmptyPage
 
 
-from .models import User, Product, Seller, Category
+from .models import User, Product, Seller, Category, Cart, CartItem, Customer
 
 
 # Create your views here.
@@ -60,7 +61,6 @@ def register(request) -> JsonResponse:
 
         # User role
         role = data.get("role")
-        # print(f"role is: {role}")
 
         if role is None:
             return JsonResponse({"error": "Role is required."}, status=400)
@@ -75,13 +75,24 @@ def register(request) -> JsonResponse:
             if role == "Seller":
                 # pylint: disable=no-member
                 Seller.objects.create(user=user)
+            elif role == "Customer":
+                # If the user is a customer, create a Cart instance associated with the user
+                # pylint: disable=no-member
+                customer = Customer.objects.create(user=user)
+                cart = Cart.objects.create(customer=customer, total_quantity=0)
 
             # After the user is created, create a token for the user
             # pylint: disable=no-member
             token = Token.objects.create(user=user)
 
-        except IntegrityError:
-            return JsonResponse({"error": "Username already taken."}, status=400)
+        except IntegrityError as e:
+            if "unique constraint" in str(e).lower():
+                return JsonResponse({"error": "Username already taken."}, status=400)
+            else:
+                # Handle other integrity errors
+                return JsonResponse(
+                    {"error": "An error occurred while creating the user."}, status=400
+                )
 
         login(request, user)
         return JsonResponse(
@@ -273,7 +284,18 @@ def create_product(request):
                 return JsonResponse({"error": field["message"]}, status=400)
 
         try:
-            float_price = float(price)
+            float_base_price = round(float(base_price), 2)
+            if float_base_price < 0:
+                return JsonResponse(
+                    {"error": "Base price must be a positive number"}, status=400
+                )
+        except ValueError:
+            return JsonResponse(
+                {"error": "Base price must be a valid number"}, status=400
+            )
+
+        try:
+            float_price = round(float(price), 2)
             if float_price < 0:
                 return JsonResponse(
                     {"error": "Price must be a positive number"}, status=400
@@ -321,9 +343,9 @@ def create_product(request):
                 name=name,
                 brand=brand,
                 description=description,
-                base_price=base_price,
-                price=price,
-                stock=stock,  # Include the stock value
+                base_price=float_base_price,
+                price=float_price,
+                stock=stock,
                 category=category,
                 seller=seller,
                 image=image,
@@ -382,6 +404,10 @@ def all_products(request):
                 )  # Handle out-of-range pages by returning the first page
 
             total_pages = paginator.num_pages
+
+            # Extract IDs of all products
+            all_product_ids = [p.pk for p in products]
+
             products_json = [
                 {
                     "id": p.pk,
@@ -408,6 +434,7 @@ def all_products(request):
                 {
                     "message": "Products retrieved successfully",
                     "products": products_json,
+                    "all_product_ids": all_product_ids,
                     "pagination_info": {
                         "total_pages": total_pages,
                         "current_page": page_number,
@@ -559,5 +586,178 @@ def update_product(request, product_id):
             },
             status=200,
         )
+    else:
+        return JsonResponse({"error": "Invalid request method."}, status=405)
+
+
+@role_required("Customer")
+def add_to_cart(request, product_id):
+    """
+    View for adding a product to the shopping cart for a customer.
+    """
+    if request.method == "POST":
+        customer = Customer.objects.get(user=request.user)
+
+        try:
+            product = Product.objects.get(pk=product_id)
+        except Product.DoesNotExist:
+            return JsonResponse(
+                {"error": "Product with provided ID does not exist."}, status=400
+            )
+
+        quantity = int(request.POST.get("quantity", 1))
+
+        cart = Cart.objects.get(customer=customer)
+
+        # Verify if cartItem already exists
+        try:
+            cart_item = CartItem.objects.get(cart=cart, product=product)
+            cart_item.quantity += quantity
+            cart_item.save()
+        except CartItem.DoesNotExist:
+            CartItem.objects.create(cart=cart, product=product, quantity=quantity)
+
+
+        return JsonResponse(
+            {"message": "Product added to cart successfully."}, status=200
+        )
+    else:
+        return JsonResponse({"error": "Invalid request method."}, status=405)
+
+
+@role_required("Customer")
+def remove_from_cart(request, product_id):
+    """
+    View for removing a product from the shopping cart for a customer.
+    """
+    if request.method == "DELETE":
+        customer = request.user.customer
+        try:
+            product = Product.objects.get(pk=product_id)
+        except Product.DoesNotExist:
+            return JsonResponse(
+                {"error": "Product with provided ID does not exist."}, status=400
+            )
+
+        # Check if the product is in the customer's cart
+        cart = Cart.objects.get(customer=customer)
+        try:
+            cart_item = CartItem.objects.get(cart=cart, product=product)
+        except CartItem.DoesNotExist:
+            return JsonResponse({"error": "Product is not in the cart."}, status=400)
+
+        # Remove the product from the cart
+        cart_item.delete()
+
+        return JsonResponse(
+            {"message": "Product removed from cart successfully."}, status=200
+        )
+    else:
+        return JsonResponse({"error": "Invalid request method."}, status=405)
+
+
+@role_required("Customer")
+def update_quantity(request, product_id):
+    """
+    View for updating the quantity of a product in the shopping cart for a customer.
+    """
+    if request.method == "PUT":
+        customer = request.user.customer
+        print("put")
+
+        try:
+            product = Product.objects.get(pk=product_id)
+        except Product.DoesNotExist:
+            return JsonResponse(
+                {"error": "Product with provided ID does not exist."}, status=400
+            )
+
+        data = json.loads(request.body)
+
+        new_quantity = int(data.get("quantity")) or 1
+        print(f"new quantity from frontend: {new_quantity}")
+
+        # Check if the product is in the customer's cart
+        cart = Cart.objects.get(customer=customer)
+        print(f"cart: {cart}")
+        try:
+            cart_item = CartItem.objects.get(cart=cart, product=product)
+            print(f"cart_item: {cart_item}")
+
+        except CartItem.DoesNotExist:
+            return JsonResponse({"error": "Product is not in the cart."}, status=400)
+
+        # Update the quantity of the product in the cart
+        cart_item.quantity = cart_item.quantity + new_quantity
+        cart_item.save()
+
+        return JsonResponse({"message": "Cart updated successfully."}, status=200)
+    else:
+        return JsonResponse({"error": "Invalid request method."}, status=405)
+
+@role_required("Customer")
+def get_cart(request):
+    if request.method == "GET":
+        customer = request.user.customer
+
+        try:
+            cart = Cart.objects.get(customer=customer)
+        except Cart.DoesNotExist:
+            return JsonResponse(
+                {"error": "Cart does not exist for this customer."}, status=404
+            )
+
+        # Retrieve all cart items associated with the cart
+        cart_items = CartItem.objects.filter(cart=cart)
+
+        # Initialize a dictionary to aggregate quantities of the same product
+        product_quantities = {}
+
+        # Aggregate quantities for identical products
+        for cart_item in cart_items:
+            product_id = cart_item.product.id
+            if product_id in product_quantities:
+                product_quantities[product_id] += cart_item.quantity
+            else:
+                product_quantities[product_id] = cart_item.quantity
+
+        # Serialize cart items data
+        cart_items_data = []
+        for product_id, quantity in product_quantities.items():
+            cart_item = cart_items.filter(product_id=product_id).first()
+            if cart_item:
+                product_data = {
+                    "id": cart_item.product.id,
+                    "name": cart_item.product.name,
+                    "brand": cart_item.product.brand,
+                    "description": cart_item.product.description,
+                    "base_price": round(float(cart_item.product.base_price), 2),
+                    "price": round(float(cart_item.product.price), 2), 
+                    "stock": cart_item.product.stock,
+                    "category": cart_item.product.category.name,
+                    "seller": cart_item.product.seller.user.username,
+                    "quantity": quantity
+                }
+                if cart_item.product.image:  # Check if the product has an associated image
+                    product_data["image_url"] = cart_item.product.image.url
+                else:
+                    product_data["image_url"] = None  # Or any default image URL or placeholder
+                cart_items_data.append(product_data)
+
+        # Calculate total quantity and total price
+        cart_total_quantity = sum(product_quantities.values())
+        cart_total_price = sum(
+            cart_item.product.price * quantity for product_id, quantity in product_quantities.items()
+        )
+
+        return JsonResponse(
+            {
+                "cartItems": cart_items_data,
+                "cartTotalQuantity": cart_total_quantity,
+                "cartTotalPrice": round(float(cart_total_price), 2),
+            },
+            status=200,
+        )
+
     else:
         return JsonResponse({"error": "Invalid request method."}, status=405)

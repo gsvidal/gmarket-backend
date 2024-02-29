@@ -64,15 +64,15 @@ class Product(models.Model):
 #     quantity = models.PositiveIntegerField()
 
 
-# class Cart(models.Model):
-#     id = models.AutoField(primary_key=True)
-#     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-#     products = models.ManyToManyField(Product, through="CartItem")
-#     quantity = models.PositiveIntegerField()
+class Cart(models.Model):
+    id = models.AutoField(primary_key=True)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    products = models.ManyToManyField(Product, through="CartItem")
+    total_quantity = models.PositiveIntegerField()
 
 
-# class CartItem(models.Model):
-#     id = models.AutoField(primary_key=True)
-#     cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
-#     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-#     quantity = models.PositiveIntegerField()
+class CartItem(models.Model):
+    id = models.AutoField(primary_key=True)
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
